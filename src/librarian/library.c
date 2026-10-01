@@ -268,7 +268,7 @@ static void initWrappedLib(library_t *lib, box64context_t* context) {
                 if (err == -1) {
                     const char* error_str = dlerror();
                     if (error_str) // don't print the message if there is no error string from last error
-                        printf_log(LOG_NONE, "Error initializing native %s (last dlerror is %s)\n", lib->name, error_str);
+                        printf_dump(LOG_INFO, "Cannot initialize native %s (last dlerror is %s)\n", lib->name, error_str);
                 }
                 return; // non blocker...
             }
@@ -281,8 +281,9 @@ static void initWrappedLib(library_t *lib, box64context_t* context) {
             lib->w.refcnt = 1;
             // Call librarian to load all dependant elf
             if(AddNeededLib(context->maplib, 0, 0, 0, lib->w.needed, NULL, context, thread_get_emu())) {
-                printf_log(LOG_NONE, "Error: loading a needed libs in elf %s\n", lib->name);
-                return;
+                // a missing helper library (e.g. libxcb for libX11, libXfixes/libXrender for libXcursor) is not fatal:
+                // the wrapped library itself loaded, only calls into the missing one would fail
+                printf_dump(LOG_INFO, "Warning: a needed lib of wrapped %s could not be loaded, continuing\n", lib->name);
             }
 
             linkmap_t *lm = addLinkMapLib(lib);
